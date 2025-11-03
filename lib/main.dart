@@ -42,13 +42,15 @@ class HomeScreen extends StatelessWidget {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('video_path', filePath!);
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Video Selected: ${filePath
-                .split('/')
-                .last}'),
-          ),
-        );
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Video Selected: ${filePath
+                  .split('/')
+                  .last}'),
+            ),
+          );
+        }
       }
     } catch (e) {
       print("Failed to pick video: $e");
