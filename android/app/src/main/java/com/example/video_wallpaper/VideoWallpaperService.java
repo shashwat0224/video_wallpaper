@@ -3,10 +3,14 @@ package com.example.video_wallpaper;
 import android.net.Uri;
 import android.service.wallpaper.WallpaperService;
 import android.view.SurfaceHolder;
+import android.content.Context;
+import android.content.SharedPreferences;
 
+import androidx.media3.common.C;
 import androidx.media3.common.MediaItem;
 import androidx.media3.common.Player;
 import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.exoplayer.trackselection.DefaultTrackSelector;
 
 public class VideoWallpaperService extends WallpaperService {
 
@@ -23,7 +27,13 @@ public class VideoWallpaperService extends WallpaperService {
         public void onCreate(SurfaceHolder surfaceHolder) {
             super.onCreate(surfaceHolder);
 
-            player = new ExoPlayer.Builder(getApplicationContext()).build();
+            DefaultTrackSelector trackSelector = new DefaultTrackSelector(getApplicationContext());
+
+            trackSelector.setParameters(trackSelector.buildUponParameters().setTrackTypeDisabled(C.TRACK_TYPE_AUDIO, true));
+
+            player = new ExoPlayer.Builder(getApplicationContext())
+                    .setTrackSelector(trackSelector)
+                    .build();
 
             player.setRepeatMode(Player.REPEAT_MODE_ONE);
 
@@ -54,9 +64,23 @@ public class VideoWallpaperService extends WallpaperService {
 
             player.setVideoSurfaceHolder(holder);
 
-            String videoUrl = "https://storage.googleapis.com/exoplayer-test-media-0/BigBuckBunny_320x180.mp4";
-            MediaItem mediaItem = MediaItem.fromUri(Uri.parse(videoUrl));
+            SharedPreferences prefs = getApplicationContext().getSharedPreferences(
+                    "FlutterSharedPreferences", Context.MODE_PRIVATE
+            );
 
+            // 2. Get the video path.
+            //    The key MUST be prefixed with "flutter."
+            String videoPath = prefs.getString("flutter.video_path", null);
+
+            MediaItem mediaItem;
+            if (videoPath != null) {
+                // 3. We found a path! Create a MediaItem from the local file
+                mediaItem = MediaItem.fromUri(Uri.parse(videoPath));
+            } else {
+                // 4. No path saved, so play the bunny video as a fallback
+                String fallbackUrl = "https://storage.googleapis.com/exoplayer-test-media-0/BigBuckBunny_320x180.mp4";
+                mediaItem = MediaItem.fromUri(Uri.parse(fallbackUrl));
+            }
             player.setMediaItem(mediaItem);
             player.prepare();
             player.play();
@@ -65,7 +89,7 @@ public class VideoWallpaperService extends WallpaperService {
         @Override
         public void onSurfaceDestroyed(SurfaceHolder holder) {
             super.onSurfaceDestroyed(holder);
-            
+
         }
     }
 }
