@@ -23,14 +23,19 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   static const platform = MethodChannel(
     'com.example.video_wallpaper/wallpaper',
   );
 
-  Future<void> _pickVideo(BuildContext context) async {
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  Future<void> _pickVideo(BuildContext context) async  {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.video,
@@ -59,7 +64,7 @@ class HomeScreen extends StatelessWidget {
 
   Future<void> _applyWallpaper() async {
     try {
-      await platform.invokeMethod('applyWallpaper');
+      await HomeScreen.platform.invokeMethod('applyWallpaper');
     } on PlatformException catch (e) {
       print("Failed to apply the wallpaper: '${e.message}'.");
     }
