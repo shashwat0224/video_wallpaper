@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:video_wallpaper/settings.dart';
 
 void main() {
   runApp(const MyApp());
@@ -35,7 +36,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  Future<void> _pickVideo(BuildContext context) async  {
+
+  Future<void> _pickVideo(BuildContext context) async {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.video,
@@ -46,6 +48,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('video_path', filePath!);
+        await prefs.setString('lock_video_path', filePath);
 
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -73,10 +76,28 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Video Wallpaper')),
+      appBar: AppBar(title: Text('Video Wallpaper',),
+        actions: [
+          IconButton(onPressed: () {
+            Navigator.push(
+                context, MaterialPageRoute(builder: (context) => Settings(),));
+          }, icon: Icon(Icons.settings))
+        ],),
       body: Column(
         // mainAxisAlignment: MainAxisAlignment.start,
         children: [
+          SizedBox(height: 15,),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              'Only Select "Portrait or 9:16 Aspect Ratio" video for wallpaper',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+                color: Colors.red,
+              ),
+            ),
+          ),
           ElevatedButton(
             onPressed: () => _pickVideo(context),
             child: Text('Pick Video'),
@@ -86,6 +107,7 @@ class _HomeScreenState extends State<HomeScreen> {
             onPressed: _applyWallpaper,
             child: Text('Apply Live Wallpaper'),
           ),
+          SizedBox(height: 20),
         ],
       ),
     );

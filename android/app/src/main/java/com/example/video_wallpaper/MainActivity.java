@@ -8,7 +8,10 @@ import android.app.WallpaperManager;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.os.Build;
+
 import androidx.annotation.NonNull;
+
+import java.io.IOException;
 
 public class MainActivity extends FlutterActivity {
 
@@ -30,6 +33,16 @@ public class MainActivity extends FlutterActivity {
                 }
             } else {
                 result.notImplemented();
+            }
+
+            if (call.method.equals("removeWallpaper")) {
+                try {
+                    WallpaperManager wm = WallpaperManager.getInstance(getApplicationContext());
+                    wm.clear();
+                    result.success(true);
+                } catch (Exception e) {
+                    result.error("ERROR", "Failed to clear wallpaper: " + e.getMessage(), null);
+                }
             }
         });
     }
