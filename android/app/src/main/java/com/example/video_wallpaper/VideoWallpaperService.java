@@ -1,6 +1,8 @@
 package com.example.video_wallpaper;
 
+import android.app.KeyguardManager;
 import android.net.Uri;
+import android.os.Build;
 import android.service.wallpaper.WallpaperService;
 import android.view.SurfaceHolder;
 import android.content.Context;
@@ -30,16 +32,8 @@ public class VideoWallpaperService extends WallpaperService {
         @Override
         public void onCreate(final SurfaceHolder surfaceHolder) {
             super.onCreate(surfaceHolder);
-
-            final DefaultTrackSelector trackSelector = new DefaultTrackSelector(VideoWallpaperService.this.getApplicationContext());
-            trackSelector.setParameters(trackSelector.buildUponParameters().setTrackTypeDisabled(C.TRACK_TYPE_AUDIO, true));
-
-            this.player = new ExoPlayer.Builder(VideoWallpaperService.this.getApplicationContext())
-                    .setTrackSelector(trackSelector)
-                    .build();
-
+            this.player = new ExoPlayer.Builder(VideoWallpaperService.this.getApplicationContext()).build();
             this.player.setRepeatMode(Player.REPEAT_MODE_ONE);
-            this.player.setVolume(0.0f);
         }
 
         @Override
@@ -55,7 +49,8 @@ public class VideoWallpaperService extends WallpaperService {
         @Override
         public void onVisibilityChanged(final boolean visible) {
             if (visible) {
-                this.loadVideoFromPreferences();
+                boolean isLocked = isDeviceLocked();
+                this.loadVideoFromPreferences(isLocked);
                 this.player.play();
             } else {
                 this.player.pause();
@@ -74,13 +69,31 @@ public class VideoWallpaperService extends WallpaperService {
 
         }
 
-        private void loadVideoFromPreferences() {
+        private boolean isDeviceLocked() {
+            KeyguardManager km = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
+                return km != null && km.isDeviceLocked();
+            }
+            return false;
+        }
+
+        private void loadVideoFromPreferences(boolean isLocked) {
             final SharedPreferences prefs = VideoWallpaperService.this.getApplicationContext().getSharedPreferences(
                     "FlutterSharedPreferences", MODE_PRIVATE
             );
 
             // Get the latest path from Flutter
-            String newPath = prefs.getString("flutter.video_path", null);
+            String newPath ;
+
+            if (isLocked) {
+                newPath = prefs.getString("flutter.lock_video_path", null);
+
+                if (newPath == null) {
+                    newPath = prefs.getString("flutter.video_path", null);
+                }
+            } else {
+                newPath = prefs.getString("flutter.video_path", null);
+            }
 
             // Fallback URL if nothing is saved
             if (null == newPath) {
@@ -89,16 +102,25 @@ public class VideoWallpaperService extends WallpaperService {
 
             // CRITICAL CHECK: Only reload if the path is DIFFERENT from what is playing
             if (!newPath.equals(this.currentVideoPath)) {
-
                 // Update our tracker
                 this.currentVideoPath = newPath;
-
                 // Load the new video into ExoPlayer
-                final MediaItem mediaItem = MediaItem.fromUri(Uri.parse(newPath));
+                MediaItem mediaItem = MediaItem.fromUri(Uri.parse(newPath));
                 this.player.setMediaItem(mediaItem);
                 this.player.prepare();
                 // We don't need player.play() here because onVisibilityChanged calls it right after
             }
+
+            float volume = 0.0f;
+            try {
+                Double volDouble = (Double) prefs.getAll().get("flutter.video_volume");
+                if (volDouble != null) {
+                    volume = volDouble.floatValue();
+                }
+            } catch (Exception e) {
+                volume = 0.0f;
+            }
+            player.setVolume(volume);
         }
     }
 }
